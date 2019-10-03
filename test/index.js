@@ -1,7 +1,8 @@
 const AWS = require('aws-sdk-mock')
 const sinon = require('sinon')
 const path = require('path')
-AWS.setSDK(path.resolve('./node_modules/aws-sdk'))
+AWS.setSDK(path.resolve('./node_modules/aws-sdk-mock'))
+AWS.setSDKInstance(require('aws-sdk'))
 
 const sqns = require('../')
 
