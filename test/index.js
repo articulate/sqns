@@ -235,10 +235,6 @@ describe('sqns', () => {
             }
           })
           expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-user-DLQ' })
-          expect(getQueueAttributesStub).to.have.been.calledWith({
-            QueueUrl: 'mock-deadletter-queue-url',
-            AttributeNames: ['QueueArn'],
-          })
           expect(createQueueStub).to.have.been.calledWith({
             QueueName: 'queue-user',
             Attributes: {
