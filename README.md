@@ -18,9 +18,9 @@ Call `sqns` to create an SQS queue (and deadletter queue). You will be returned 
 | ------ |----- |-------- |--------- |------------ |
 | `region` | `string` | none | true | AWS region |
 | `queueName` | `string` | none | true | an identifier for the queue |
-| topic | `object` | `{}` | false | sns topic subscription options (see below) |
+| topic | `object` | `{}` | false | SNS Topic Subscription options (see below) |
 
-### SNS Topic Options
+### SNS Topic Subscription Options
 
 | option | type | default | required | description |
 | ------ | ---- | ------- | -------- | ----------- |
