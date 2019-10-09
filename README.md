@@ -8,7 +8,7 @@ An SQS queue creator and SNS subscriber
 sqns :: { k: v } -> Promise String
 ```
 
-Call `sqns` to create an SQS queue and optionally subscribe the queue to an SNS topic, via the options below and you will be returned the queue URL of the newly created SQS queue.
+Call `sqns` to create an SQS queue (and deadletter queue). You will be returned the queue URL of the newly created SQS queue. Optionally subscribe the queue to an SNS topic via the options below.
 
 ## Options
 
