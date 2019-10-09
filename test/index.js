@@ -13,19 +13,13 @@ describe('sqns', () => {
     )
   })
 
-  context('when user option is not provided', () => {
-    it('rejects with an error', () =>
-      expect(sqns({ region: 'us-east-1' })).to.be.rejectedWith(Error, 'Missing user')
-    )
-  })
-
   context('when queueName option is not provided', () => {
     it('rejects with an error', () =>
-      expect(sqns({ region: 'us-east-1', user: 'user' })).to.be.rejectedWith(Error, 'Missing queueName')
+      expect(sqns({ region: 'us-east-1' })).to.be.rejectedWith(Error, 'Missing queueName')
     )
   })
 
-  context('when region, user and queueName options are provided', () => {
+  context('when region, queueName options are provided', () => {
     let createQueueStub
     let getQueueAttributesStub
 
@@ -57,12 +51,11 @@ describe('sqns', () => {
     it('creates a deadletter queue', async () => {
       const queueUrl = await sqns({
         region: 'us-east-1',
-        user: 'user',
         queueName: 'queue',
       })
-      expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-user-DLQ' })
+      expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
       expect(createQueueStub).to.have.been.calledWith({
-        QueueName: 'queue-user',
+        QueueName: 'queue',
         Attributes: {
           RedrivePolicy: JSON.stringify({
             deadLetterTargetArn: 'mock-deadletter-queue-arn',
@@ -96,15 +89,14 @@ describe('sqns', () => {
       it('creates a topic subscription', async () => {
         const queueUrl = await sqns({
           region: 'us-east-1',
-          user: 'user',
           queueName: 'queue',
           topic: {
             arn: 'mock-sns-topic-arn',
           }
         })
-        expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-user-DLQ' })
+        expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
         expect(createQueueStub).to.have.been.calledWith({
-          QueueName: 'queue-user',
+          QueueName: 'queue',
           Attributes: {
             RedrivePolicy: JSON.stringify({
               deadLetterTargetArn: 'mock-deadletter-queue-arn',
@@ -158,16 +150,15 @@ describe('sqns', () => {
         it('creates a topic subscription', async () => {
           const queueUrl = await sqns({
             region: 'us-east-1',
-            user: 'user',
             queueName: 'queue',
             topic: {
               arn: 'mock-sns-topic-arn',
               filterPolicy: { mock: 'filter-policy' },
             }
           })
-          expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-user-DLQ' })
+          expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
           expect(createQueueStub).to.have.been.calledWith({
-            QueueName: 'queue-user',
+            QueueName: 'queue',
             Attributes: {
               RedrivePolicy: JSON.stringify({
                 deadLetterTargetArn: 'mock-deadletter-queue-arn',
@@ -227,16 +218,15 @@ describe('sqns', () => {
         it('creates a topic subscription', async () => {
           const queueUrl = await sqns({
             region: 'us-east-1',
-            user: 'user',
             queueName: 'queue',
             topic: {
               arn: 'mock-sns-topic-arn',
               rawMessageDelivery: true,
             }
           })
-          expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-user-DLQ' })
+          expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
           expect(createQueueStub).to.have.been.calledWith({
-            QueueName: 'queue-user',
+            QueueName: 'queue',
             Attributes: {
               RedrivePolicy: JSON.stringify({
                 deadLetterTargetArn: 'mock-deadletter-queue-arn',

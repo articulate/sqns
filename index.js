@@ -5,7 +5,6 @@ const { path, prop } = require('ramda')
 const sqns = async (options = {}) => {
   const {
     region,
-    user,
     queueName,
     topic = {},
   } = options
@@ -13,7 +12,6 @@ const sqns = async (options = {}) => {
   AWS.config.update({ region })
 
   if (!region) throw Error('Missing region')
-  if (!user) throw Error('Missing user')
   if (!queueName) throw Error('Missing queueName')
 
   const sqs = new AWS.SQS()
@@ -24,8 +22,8 @@ const sqns = async (options = {}) => {
   const subscribe = promisify(sns.subscribe.bind(sns))
   const setSubscriptionAttributes = promisify(sns.setSubscriptionAttributes.bind(sns))
 
-  const createDeadletterQueue = (user, queueName) =>
-    createQueue({ QueueName: `${queueName}-${user}-DLQ` })
+  const createDeadletterQueue = queueName =>
+    createQueue({ QueueName: `${queueName}-DLQ` })
       .then(prop('QueueUrl'))
 
   const getQueueArn = QueueUrl =>
@@ -34,7 +32,7 @@ const sqns = async (options = {}) => {
       AttributeNames: ['QueueArn'],
     }).then(path(['Attributes', 'QueueArn']))
 
-  const createEventsQueue = ({ deadletterQueueArn, user, queueName }) =>
+  const createEventsQueue = ({ deadletterQueueArn, queueName }) =>
     createQueue({
       Attributes: {
         RedrivePolicy: JSON.stringify({
@@ -42,7 +40,7 @@ const sqns = async (options = {}) => {
           maxReceiveCount: 3,
         }),
       },
-      QueueName: `${queueName}-${user}`,
+      QueueName: queueName,
     }).then(prop('QueueUrl'))
 
   const setEventsQueueAttributes = (queueUrl, queueArn, snsTopic) =>
@@ -75,9 +73,9 @@ const sqns = async (options = {}) => {
       TopicArn: topicArn,
     }).then(prop('SubscriptionArn'))
 
-  const deadletterQueueUrl = await createDeadletterQueue(user, queueName)
+  const deadletterQueueUrl = await createDeadletterQueue(queueName)
   const deadletterQueueArn = await getQueueArn(deadletterQueueUrl)
-  const queueUrl = await createEventsQueue({ deadletterQueueArn, user, queueName })
+  const queueUrl = await createEventsQueue({ deadletterQueueArn, queueName })
   const queueArn = await getQueueArn(queueUrl)
 
   if (topic.arn) {
