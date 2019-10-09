@@ -1,5 +1,5 @@
 {
-  "name": "sqns",
+  "name": "@articulate/sqns",
   "version": "0.0.0",
   "description": "an SQS creator and SNS subscriber",
   "main": "index.js",
