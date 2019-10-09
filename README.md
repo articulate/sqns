@@ -24,6 +24,6 @@ Call `sqns` to create an SQS queue (and deadletter queue). You will be returned 
 
 | option | type | default | required | description |
 | ------ | ---- | ------- | -------- | ----------- |
-| `arn` | `string` | none | false | SNS topic arn |
+| `arn` | `string` | none | false | SNS Topic ARN |
 | `filterPolicy` | `object` | none | false | [SNS Topic Subscription Filter Policy](https://docs.aws.amazon.com/en_pv/sns/latest/dg/sns-subscription-filter-policies.html) |
 | `rawMessageDelivery` | `boolean` | `false` | false | [SNS Topic Subscription Raw Message Delivery](https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html) |
