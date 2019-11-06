@@ -34,7 +34,7 @@ const sqns = async (options = {}) => {
       AttributeNames: ['QueueArn'],
     }).then(path(['Attributes', 'QueueArn']))
 
-  const createEventsQueue = ({ deadletterQueueArn, queueName }) =>
+  const createSqsQueue = ({ deadletterQueueArn, queueName }) =>
     createQueue({
       Attributes: {
         RedrivePolicy: JSON.stringify({
@@ -45,7 +45,7 @@ const sqns = async (options = {}) => {
       QueueName: queueName,
     }).then(prop('QueueUrl'))
 
-  const setEventsQueueAttributes = (queueUrl, queueArn, snsTopic) =>
+  const setSqsQueueAttributes = (queueUrl, queueArn, snsTopic) =>
     setQueueAttributes({
       Attributes: {
         Policy: JSON.stringify({
@@ -77,12 +77,12 @@ const sqns = async (options = {}) => {
 
   const deadletterQueueUrl = await createDeadletterQueue(queueName)
   const deadletterQueueArn = await getQueueArn(deadletterQueueUrl)
-  const queueUrl = await createEventsQueue({ deadletterQueueArn, queueName })
+  const queueUrl = await createSqsQueue({ deadletterQueueArn, queueName })
   const queueArn = await getQueueArn(queueUrl)
 
   if (topicOptions.arn) {
     const subscriptionArn = await createTopicSubscription(queueArn, topicOptions.arn)
-    await setEventsQueueAttributes(queueUrl, queueArn, topicOptions.arn)
+    await setSqsQueueAttributes(queueUrl, queueArn, topicOptions.arn)
 
     if (topicOptions.filterPolicy) {
       await setSubscriptionAttributes({
