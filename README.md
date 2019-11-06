@@ -34,7 +34,7 @@ Call `sqns` to create an SQS queue (and deadletter queue). You will be returned 
 ```javascript
 const sqns = require('sqns')
 
-queueUrl = sqns({
+const queueUrl = sqns({
   region: 'us-east-1',
   queueName: `{username}-events`,
   maxReceiveCount: 1,
