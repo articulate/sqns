@@ -69,6 +69,7 @@ describe('sqns', () => {
     context('when topic arn is provided', () => {
       let setQueueAttributes
       let subscribeStub
+      let setSubscriptionAttributesStub
 
       beforeEach(() => {
         setQueueAttributesStub = sinon.stub()
@@ -77,13 +78,19 @@ describe('sqns', () => {
         subscribeStub = sinon.stub()
         subscribeStub
           .callsArgWith(1, null, { SubscriptionArn: 'mock-subscription-arn' })
+        setSubscriptionAttributesStub = sinon.stub()
+        setSubscriptionAttributesStub
+          .onCall(0)
+          .callsArgWith(1, null, { })
         AWS.mock('SQS', 'setQueueAttributes', setQueueAttributesStub)
         AWS.mock('SNS', 'subscribe', subscribeStub)
+        AWS.mock('SNS', 'setSubscriptionAttributes', setSubscriptionAttributesStub)
       })
 
       afterEach(() => {
         AWS.restore('SQS', 'setQueueAttributes')
         AWS.restore('SNS', 'subscribe')
+        AWS.restore('SNS', 'setSubscriptionAttributes')
       })
 
       it('creates a topic subscription', async () => {
@@ -130,21 +137,19 @@ describe('sqns', () => {
           },
           QueueUrl: 'mock-queue-url',
         })
+        expect(setSubscriptionAttributesStub).to.have.been.calledWith({
+          SubscriptionArn: 'mock-subscription-arn',
+          AttributeName: 'RawMessageDelivery',
+          AttributeValue: 'true',
+        })
         expect(queueUrl).to.equal('mock-queue-url')
       })
 
       context('when topic filterPolicy is provided', () => {
-        let setSubscriptionAttributes
-
         beforeEach(() => {
-          setSubscriptionAttributesStub = sinon.stub()
           setSubscriptionAttributesStub
+            .onCall(1)
             .callsArgWith(1, null, { })
-          AWS.mock('SNS', 'setSubscriptionAttributes', setSubscriptionAttributesStub)
-        })
-
-        afterEach(() => {
-          AWS.restore('SNS', 'setSubscriptionAttributes')
         })
 
         it('creates a topic subscription', async () => {
@@ -197,31 +202,23 @@ describe('sqns', () => {
             AttributeName: 'FilterPolicy',
             AttributeValue: JSON.stringify({ mock: 'filter-policy' })
           })
+          expect(setSubscriptionAttributesStub).to.have.been.calledWith({
+            SubscriptionArn: 'mock-subscription-arn',
+            AttributeName: 'RawMessageDelivery',
+            AttributeValue: 'true',
+          })
           expect(queueUrl).to.equal('mock-queue-url')
         })
       })
 
-      context('when topic rawMessageDelivery is provided', () => {
-        let setSubscriptionAttributes
-
-        beforeEach(() => {
-          setSubscriptionAttributesStub = sinon.stub()
-          setSubscriptionAttributesStub
-            .callsArgWith(1, null, { })
-          AWS.mock('SNS', 'setSubscriptionAttributes', setSubscriptionAttributesStub)
-        })
-
-        afterEach(() => {
-          AWS.restore('SNS', 'setSubscriptionAttributes')
-        })
-
+      context('when topic rawMessageDelivery is false', () => {
         it('creates a topic subscription', async () => {
           const queueUrl = await sqns({
             region: 'us-east-1',
             queueName: 'queue',
             topic: {
               arn: 'mock-sns-topic-arn',
-              rawMessageDelivery: true,
+              rawMessageDelivery: false,
             }
           })
           expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
@@ -259,11 +256,6 @@ describe('sqns', () => {
               }),
             },
             QueueUrl: 'mock-queue-url',
-          })
-          expect(setSubscriptionAttributesStub).to.have.been.calledWith({
-            SubscriptionArn: 'mock-subscription-arn',
-            AttributeName: 'RawMessageDelivery',
-            AttributeValue: 'true',
           })
           expect(queueUrl).to.equal('mock-queue-url')
         })

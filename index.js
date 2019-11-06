@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk')
 const { promisify } = require('util')
-const { path, prop } = require('ramda')
+const { merge, path, prop } = require('ramda')
 
 const sqns = async (options = {}) => {
   const {
@@ -13,6 +13,8 @@ const sqns = async (options = {}) => {
 
   if (!region) throw Error('Missing region')
   if (!queueName) throw Error('Missing queueName')
+
+  const topicOptions = merge({ rawMessageDelivery: true }, topic)
 
   const sqs = new AWS.SQS()
   const sns = new AWS.SNS({ apiVersion: '2010-03-31' })
@@ -78,19 +80,19 @@ const sqns = async (options = {}) => {
   const queueUrl = await createEventsQueue({ deadletterQueueArn, queueName })
   const queueArn = await getQueueArn(queueUrl)
 
-  if (topic.arn) {
-    const subscriptionArn = await createTopicSubscription(queueArn, topic.arn)
-    await setEventsQueueAttributes(queueUrl, queueArn, topic.arn)
+  if (topicOptions.arn) {
+    const subscriptionArn = await createTopicSubscription(queueArn, topicOptions.arn)
+    await setEventsQueueAttributes(queueUrl, queueArn, topicOptions.arn)
 
-    if (topic.filterPolicy) {
+    if (topicOptions.filterPolicy) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,
         AttributeName: 'FilterPolicy',
-        AttributeValue: JSON.stringify(topic.filterPolicy),
+        AttributeValue: JSON.stringify(topicOptions.filterPolicy),
       })
     }
 
-    if (topic.rawMessageDelivery) {
+    if (topicOptions.rawMessageDelivery) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,
         AttributeName: 'RawMessageDelivery',
