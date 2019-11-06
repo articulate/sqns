@@ -18,6 +18,7 @@ Call `sqns` to create an SQS queue (and deadletter queue). You will be returned 
 | ------ |----- |-------- |------------ |
 | `region` | `String` | | AWS region |
 | `queueName` | `String` | | an identifier for the queue |
+| `maxReceiveCount` | `Number` | 3 | `maxReceiveCount` for the queue redrive policy |
 | `topic` | `object` | `{ rawMessageDelivery: true }` | SNS Topic Subscription options (see below) |
 
 ### SNS Topic Subscription Options
@@ -27,3 +28,18 @@ Call `sqns` to create an SQS queue (and deadletter queue). You will be returned 
 | `arn` | `string` | | SNS Topic ARN |
 | `filterPolicy` | `Object` | | [SNS Topic Subscription Filter Policy](https://docs.aws.amazon.com/en_pv/sns/latest/dg/sns-subscription-filter-policies.html) |
 | `rawMessageDelivery` | `Boolean` | `true` | [SNS Topic Subscription Raw Message Delivery](https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html) |
+
+## Example Usage
+
+```javascript
+const sqns = require('sqns')
+
+queueUrl = sqns({
+  region: 'us-east-1',
+  queueName: `{username}-events`,
+  maxReceiveCount: 1,
+  topic: {
+    arn: topicArn,
+  }
+})
+```
