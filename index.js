@@ -6,6 +6,7 @@ const sqns = async (options = {}) => {
   const {
     region,
     queueName,
+    maxReceiveCount = 3,
     topic = {},
   } = options
 
@@ -39,7 +40,7 @@ const sqns = async (options = {}) => {
       Attributes: {
         RedrivePolicy: JSON.stringify({
           deadLetterTargetArn: deadletterQueueArn,
-          maxReceiveCount: 3,
+          maxReceiveCount,
         }),
       },
       QueueName: queueName,

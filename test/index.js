@@ -66,6 +66,25 @@ describe('sqns', () => {
       expect(queueUrl).to.equal('mock-queue-url')
     })
 
+    it('creates a deadletter queue with customMaxReceiveCount', async () => {
+      const queueUrl = await sqns({
+        region: 'us-east-1',
+        queueName: 'queue',
+        maxReceiveCount: 1,
+      })
+      expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
+      expect(createQueueStub).to.have.been.calledWith({
+        QueueName: 'queue',
+        Attributes: {
+          RedrivePolicy: JSON.stringify({
+            deadLetterTargetArn: 'mock-deadletter-queue-arn',
+            maxReceiveCount: 1,
+          })
+        }
+      })
+      expect(queueUrl).to.equal('mock-queue-url')
+    })
+
     context('when topic arn is provided', () => {
       let setQueueAttributes
       let subscribeStub
