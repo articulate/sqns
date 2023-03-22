@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/articulate/sqns#readme",
   "dependencies": {
+    "@aws-sdk/client-sns": "^3.296.0",
+    "@aws-sdk/client-sqs": "^3.296.0",
     "aws-sdk": "^2.527.0",
     "ramda": "^0.26.1"
   },

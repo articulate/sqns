@@ -1,6 +1,7 @@
-const AWS = require('aws-sdk')
 const { promisify } = require('util')
-const { merge, path, prop } = require('ramda')
+const { path, prop } = require('ramda')
+const { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, SetQueueAttributesCommand } = require('@aws-sdk/client-sqs')
+const { SNSClient, SubscribeCommand, SetSubscriptionAttributesCommand } = require('@aws-sdk/client-sns')
 
 const sqns = async (options = {}) => {
   const {
@@ -10,20 +11,31 @@ const sqns = async (options = {}) => {
     topic = {},
   } = options
 
-  AWS.config.update({ region })
-
   if (!region) throw Error('Missing region')
   if (!queueName) throw Error('Missing queueName')
 
-  const topicOptions = merge({ rawMessageDelivery: true }, topic)
+  const topicOptions = {
+    rawMessageDelivery: true,
+    ...topic
+  }
 
-  const sqs = new AWS.SQS()
-  const sns = new AWS.SNS({ apiVersion: '2010-03-31' })
-  const createQueue = promisify(sqs.createQueue.bind(sqs))
-  const getQueueAttributes = promisify(sqs.getQueueAttributes.bind(sqs))
-  const setQueueAttributes = promisify(sqs.setQueueAttributes.bind(sqs))
-  const subscribe = promisify(sns.subscribe.bind(sns))
-  const setSubscriptionAttributes = promisify(sns.setSubscriptionAttributes.bind(sns))
+  const sqsClient = new SQSClient({ region })
+  const snsClient = new SNSClient({ region })
+
+  const createQueue = (params) =>
+    sqsClient.send(new CreateQueueCommand(params))
+
+  const getQueueAttributes = (params) =>
+    sqsClient.send(new GetQueueAttributesCommand(params))
+
+  const setQueueAttributes = (params) =>
+    sqsClient.send(new SetQueueAttributesCommand(params))
+
+  const subscribe = (params) =>
+    snsClient.send(new SubscribeCommand(params))
+
+  const setSubscriptionAttributes = (params) =>
+    snsClient.send(new SetSubscriptionAttributesCommand(params))
 
   const createDeadletterQueue = queueName =>
     createQueue({ QueueName: `${queueName}-DLQ` })
@@ -33,7 +45,7 @@ const sqns = async (options = {}) => {
     getQueueAttributes({
       QueueUrl,
       AttributeNames: ['QueueArn'],
-    }).then(path(['Attributes', 'QueueArn']))
+    }).then(attributes => attributes.Attributes?.queueArn)
 
   const createSqsQueue = ({ deadletterQueueArn, queueName }) =>
     createQueue({
