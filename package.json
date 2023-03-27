@@ -2,9 +2,12 @@
   "name": "@articulate/sqns",
   "version": "0.1.0",
   "description": "an SQS creator and SNS subscriber",
-  "main": "index.js",
+  "main": "./build/index.js",
   "scripts": {
-    "test": "mocha ./test"
+    "build": "lint && tsc",
+    "lint": "eslint **/*.ts",
+    "lint:fix": "eslint **/*.ts --fix",
+    "test": "tsc && mocha ./test"
   },
   "repository": {
     "type": "git",
@@ -24,16 +27,23 @@
   "dependencies": {
     "@aws-sdk/client-sns": "^3.296.0",
     "@aws-sdk/client-sqs": "^3.296.0",
-    "aws-sdk": "^2.527.0",
-    "ramda": "^0.26.1"
+    "aws-sdk-client-mock": "^2.1.1"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.43.0",
+    "@typescript-eslint/parser": "^5.56.0",
     "aws-sdk-mock": "^4.5.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
+    "eslint": "^8.0.1",
+    "eslint-config-standard-with-typescript": "^34.0.1",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-n": "^15.0.0",
+    "eslint-plugin-promise": "^6.0.0",
     "mocha": "^6.2.0",
     "nock": "^11.3.5",
     "sinon": "^7.5.0",
-    "sinon-chai": "^3.3.0"
+    "sinon-chai": "^3.3.0",
+    "typescript": "*"
   }
 }

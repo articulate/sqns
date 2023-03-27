@@ -1,12 +1,20 @@
-const AWS = require('aws-sdk-mock')
 const sinon = require('sinon')
 const path = require('path')
-AWS.setSDK(path.resolve('./node_modules/aws-sdk-mock'))
-AWS.setSDKInstance(require('aws-sdk'))
+const { mockClient } = require('aws-sdk-client-mock')
+const { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, SetQueueAttributesCommand } = require('@aws-sdk/client-sqs')
+const { SNSClient, SubscribeCommand, SetSubscriptionAttributesCommand } = require('@aws-sdk/client-sns')
 
-const sqns = require('../')
+const sqns = require('../build')
+
+const sqsMock = mockClient(SQSClient)
+const snsMock = mockClient(SNSClient)
 
 describe('sqns', () => {
+  beforeEach(() => {
+    sqsMock.reset()
+    snsMock.reset()
+  })
+
   context('when region option is not provided', () => {
     it('rejects with an error', () =>
       expect(sqns()).to.be.rejectedWith(Error, 'Missing region')
@@ -27,25 +35,24 @@ describe('sqns', () => {
       createQueueStub = sinon.stub()
       createQueueStub
         .onCall(0)
-        .callsArgWith(1, null, { QueueUrl: 'mock-deadletter-queue-url' })
+        .resolves({ QueueUrl: 'mock-deadletter-queue-url' })
         .onCall(1)
-        .callsArgWith(1, null, { QueueUrl: 'mock-queue-url' })
+        .resolves({ QueueUrl: 'mock-queue-url' })
+
       getQueueAttributesStub = sinon.stub()
       getQueueAttributesStub
         .onCall(0)
-        .callsArgWith(1, null, { Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
+        .resolves({ Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
         .onCall(1)
-        .callsArgWith(1, null, { Attributes: { QueueArn: 'mock-queue-arn' } })
+        .resolves({ Attributes: { QueueArn: 'mock-queue-arn' } })
+
       setQueueAttributesStub = sinon.stub()
       setQueueAttributesStub
         .callsArgWith(1, null, {  })
-      AWS.mock('SQS', 'createQueue', createQueueStub)
-      AWS.mock('SQS', 'getQueueAttributes', getQueueAttributesStub)
-    })
 
-    afterEach(() => {
-      AWS.restore('SQS', 'createQueue')
-      AWS.restore('SQS', 'getQueueAttributes')
+      sqsMock.on(CreateQueueCommand).callsFake(createQueueStub)
+      sqsMock.on(GetQueueAttributesCommand).callsFake(getQueueAttributesStub)
+      sqsMock.on(SetQueueAttributesCommand).callsFake(setQueueAttributesStub)
     })
 
     it('creates a deadletter queue', async () => {
@@ -55,13 +62,13 @@ describe('sqns', () => {
       })
       expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
       expect(createQueueStub).to.have.been.calledWith({
-        QueueName: 'queue',
         Attributes: {
           RedrivePolicy: JSON.stringify({
             deadLetterTargetArn: 'mock-deadletter-queue-arn',
             maxReceiveCount: 3,
           })
-        }
+        },
+        QueueName: 'queue'
       })
       expect(queueUrl).to.equal('mock-queue-url')
     })
@@ -93,23 +100,23 @@ describe('sqns', () => {
       beforeEach(() => {
         setQueueAttributesStub = sinon.stub()
         setQueueAttributesStub
-          .callsArgWith(1, null, { QueueUrl: 'mock-queue-url' })
+          .resolves({ QueueUrl: 'mock-queue-url' })
         subscribeStub = sinon.stub()
         subscribeStub
-          .callsArgWith(1, null, { SubscriptionArn: 'mock-subscription-arn' })
+          .resolves({ SubscriptionArn: 'mock-subscription-arn' })
         setSubscriptionAttributesStub = sinon.stub()
         setSubscriptionAttributesStub
           .onCall(0)
-          .callsArgWith(1, null, { })
-        AWS.mock('SQS', 'setQueueAttributes', setQueueAttributesStub)
-        AWS.mock('SNS', 'subscribe', subscribeStub)
-        AWS.mock('SNS', 'setSubscriptionAttributes', setSubscriptionAttributesStub)
+          .resolves({})
+        
+        sqsMock.on(SetQueueAttributesCommand).callsFake(setQueueAttributesStub)
+        snsMock.on(SubscribeCommand).callsFake(subscribeStub)
+        snsMock.on(SetSubscriptionAttributesCommand).callsFake(setSubscriptionAttributesStub)
       })
 
       afterEach(() => {
-        AWS.restore('SQS', 'setQueueAttributes')
-        AWS.restore('SNS', 'subscribe')
-        AWS.restore('SNS', 'setSubscriptionAttributes')
+        sqsMock.reset()
+        snsMock.reset()
       })
 
       it('creates a topic subscription', async () => {
@@ -168,7 +175,7 @@ describe('sqns', () => {
         beforeEach(() => {
           setSubscriptionAttributesStub
             .onCall(1)
-            .callsArgWith(1, null, { })
+            .resolves({ })
         })
 
         it('creates a topic subscription', async () => {
