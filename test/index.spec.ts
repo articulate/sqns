@@ -1,10 +1,10 @@
-const sinon = require('sinon')
-const path = require('path')
-const { mockClient } = require('aws-sdk-client-mock')
-const { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, SetQueueAttributesCommand } = require('@aws-sdk/client-sqs')
-const { SNSClient, SubscribeCommand, SetSubscriptionAttributesCommand } = require('@aws-sdk/client-sns')
+import sinon from 'sinon'
+import { expect } from 'chai'
+import { mockClient } from 'aws-sdk-client-mock'
+import { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, SetQueueAttributesCommand } from '@aws-sdk/client-sqs'
+import { SNSClient, SubscribeCommand, SetSubscriptionAttributesCommand } from '@aws-sdk/client-sns'
 
-const sqns = require('../build')
+import sqns from '../src'
 
 const sqsMock = mockClient(SQSClient)
 const snsMock = mockClient(SNSClient)
@@ -30,6 +30,7 @@ describe('sqns', () => {
   context('when region, queueName options are provided', () => {
     let createQueueStub
     let getQueueAttributesStub
+    let setQueueAttributesStub
 
     beforeEach(() => {
       createQueueStub = sinon.stub()
@@ -60,6 +61,7 @@ describe('sqns', () => {
         region: 'us-east-1',
         queueName: 'queue',
       })
+
       expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
       expect(createQueueStub).to.have.been.calledWith({
         Attributes: {

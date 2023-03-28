@@ -1,36 +1,40 @@
 import {
   CreateQueueCommand,
-  type CreateQueueCommandInput,
   GetQueueAttributesCommand,
-  type GetQueueAttributesCommandInput,
-  type GetQueueAttributesCommandOutput,
   SetQueueAttributesCommand,
-  type SetQueueAttributesCommandInput,
-  SQSClient,
-  type CreateQueueCommandOutput,
-  type SetQueueAttributesCommandOutput
+  SQSClient  
 } from '@aws-sdk/client-sqs'
 
 import {
   SetSubscriptionAttributesCommand,
-  type SetSubscriptionAttributesCommandInput,
   SNSClient,
-  SubscribeCommand,
-  type SubscribeCommandInput,
-  type SubscribeCommandOutput,
-  type SetSubscriptionAttributesCommandOutput
+  SubscribeCommand
 } from '@aws-sdk/client-sns'
 
-interface SqnsOptions {
-  maxReceiveCount?: number
-  queueName?: string
-  region?: string
-  topic?: any
-}
+import type {
+  CreateQueueCommandInput,
+  GetQueueAttributesCommandInput,
+  GetQueueAttributesCommandOutput,
+  SetQueueAttributesCommandInput,
+  CreateQueueCommandOutput,
+  SetQueueAttributesCommandOutput
+} from '@aws-sdk/client-sqs'
+
+import type {
+  SetSubscriptionAttributesCommandInput,
+  SubscribeCommandInput,
+  SubscribeCommandOutput,
+  SetSubscriptionAttributesCommandOutput
+} from '@aws-sdk/client-sns'
+
+import {
+  SqnsOptions,
+  TopicOptions
+} from './types'
 
 interface CreateSqsQueueParams {
   deadletterQueueArn?: string
-  queueName: string
+  queueName?: string
 }
 
 const sqns = async (options: SqnsOptions = {}): Promise<string> => {
@@ -41,10 +45,10 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
     topic = {}
   } = options
 
-  if (!region) throw Error('Missing region')
-  if (!queueName) throw Error('Missing queueName')
+  if (region === null || region === undefined || region === '') throw Error('Missing region')
+  if (queueName === null || queueName === undefined || queueName === '') throw Error('Missing queueName')
 
-  const topicOptions = {
+  const topicOptions: TopicOptions = {
     rawMessageDelivery: true,
     ...topic
   }
@@ -120,15 +124,31 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
     }).then(sub => sub.SubscriptionArn)
 
   const deadletterQueueUrl = await createDeadletterQueue(queueName)
-  const deadletterQueueArn = await getQueueArn(deadletterQueueUrl)
-  const queueUrl = await createSqsQueue({ deadletterQueueArn, queueName })
-  const queueArn = await getQueueArn(queueUrl)
 
-  if (topicOptions.arn) {
+  if (deadletterQueueUrl === undefined) {
+    throw Error(`SQS: Failed to create DQL queue for: ${queueName}`)
+  }
+
+  const deadletterQueueArn = await getQueueArn(deadletterQueueUrl)
+  if (deadletterQueueArn === undefined) {
+    throw Error(`SQS: Failed to get arn for: ${deadletterQueueUrl}`)
+  }
+
+  const queueUrl = await createSqsQueue({ deadletterQueueArn, queueName })
+  if (queueUrl === undefined) {
+    throw Error(`SQS: Failed to create queue: ${queueName}`)
+  }
+
+  const queueArn = await getQueueArn(queueUrl)
+  if (queueArn === undefined) {
+    throw Error(`SQS: Failed to get arn for: ${queueUrl}`)
+  }
+
+  if (topicOptions.arn !== undefined && topicOptions.arn !== null && topicOptions.arn !== '') {
     const subscriptionArn = await createTopicSubscription(queueArn, topicOptions.arn)
     await setSqsQueueAttributes(queueUrl, queueArn, topicOptions.arn)
 
-    if (topicOptions.filterPolicy) {
+    if (topicOptions.filterPolicy !== null) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,
         AttributeName: 'FilterPolicy',
@@ -136,7 +156,7 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
       })
     }
 
-    if (topicOptions.rawMessageDelivery) {
+    if (topicOptions.rawMessageDelivery === true) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,
         AttributeName: 'RawMessageDelivery',
@@ -148,4 +168,4 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
   return queueUrl
 }
 
-export = sqns
+export default sqns

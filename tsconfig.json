@@ -6,7 +6,9 @@
     "target": "ES2018",
     "moduleResolution": "nodenext",
     "module": "CommonJS",
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "esModuleInterop": true,
   },
-  "include": ["./index.ts"]
+  "include": ["./src/**.ts"],
+  "exclude": ["./test/**"]
 }

@@ -1,9 +1,12 @@
 {
     "env": {
-        "browser": false,
-        "es2021": true
+        "es2018": true,
+        "node": true
     },
-    "extends": "standard-with-typescript",
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
     "overrides": [
     ],
     "parserOptions": {
@@ -11,5 +14,12 @@
         "project": ["./tsconfig.json"]
     },
     "rules": {
+        "eol-last": ["error", "always"],
+        "indent": ["error", 2, { "SwitchCase": 1 }],
+        "linebreak-style": ["error", "unix"],
+        "no-console": "off",
+        "no-trailing-spaces": "error",
+        "quotes": ["error", "single", { "allowTemplateLiterals": true }],
+        "semi": ["error", "never"]
     }
 }
