@@ -94,8 +94,124 @@ describe('sqns', () => {
       expect(queueUrl).to.equal('mock-queue-url')
     })
 
+    context('failures', () => {
+      it('fails with an error if a failure happens when creating the DLQ', async () => {
+        createQueueStub
+          .onCall(0)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create DQL queue for: queue')
+      })
+
+      it('fails with an error when creating a DLQ if the result is undefined', async () => {
+        createQueueStub
+          .onCall(0)
+          .resolves()
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create DQL queue for: queue')
+      })
+
+      it('fails with an error if a failure happens when getting the DLQ ARN', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
+      })
+
+      it('fails with an error when getting the DLQ ARN if the result is undefined', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves()
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
+      })
+
+      it('fails with an error if a failure happens when creating the main queue', async () => {
+        createQueueStub
+          .onCall(0)
+          .resolves({ QueueUrl: 'mock-deadletter-queue-url' })
+          .onCall(1)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create queue: queue')
+      })
+
+      it('fails with an error when creating the main queue if the result is undefined', async () => {
+        createQueueStub
+          .onCall(0)
+          .resolves({ QueueUrl: 'mock-deadletter-queue-url' })
+          .onCall(1)
+          .resolves({})
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create queue: queue')
+      })
+
+      it('fails with an error if a failure happens when getting the main queue ARN', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves({ Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
+          .onCall(1)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-queue-url')
+      })
+
+      it('fails with an error when creating the main queue if the result is undefined', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves({ Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
+          .onCall(1)
+          .resolves()
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-queue-url')
+      })
+
+    })
+
+
+
     context('when topic arn is provided', () => {
-      let setQueueAttributes
       let subscribeStub
       let setSubscriptionAttributesStub
 
@@ -110,7 +226,7 @@ describe('sqns', () => {
         setSubscriptionAttributesStub
           .onCall(0)
           .resolves({})
-        
+
         sqsMock.on(SetQueueAttributesCommand).callsFake(setQueueAttributesStub)
         snsMock.on(SubscribeCommand).callsFake(subscribeStub)
         snsMock.on(SetSubscriptionAttributesCommand).callsFake(setSubscriptionAttributesStub)

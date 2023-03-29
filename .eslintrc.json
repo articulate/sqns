@@ -7,11 +7,9 @@
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
     ],
-    "overrides": [
-    ],
     "parserOptions": {
         "ecmaVersion": "latest",
-        "project": ["./tsconfig.json"]
+        "project": ["./eslint.tsconfig.json"]
     },
     "rules": {
         "eol-last": ["error", "always"],

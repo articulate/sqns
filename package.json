@@ -5,10 +5,13 @@
   "main": "./build/index.js",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint **/*.ts",
-    "lint:fix": "eslint **/*.ts --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "mocha ./test/**/*.spec.ts"
   },
+  "files": [
+    "build"
+  ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/articulate/sqns.git"

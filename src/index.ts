@@ -2,7 +2,7 @@ import {
   CreateQueueCommand,
   GetQueueAttributesCommand,
   SetQueueAttributesCommand,
-  SQSClient  
+  SQSClient
 } from '@aws-sdk/client-sqs'
 
 import {
@@ -28,14 +28,10 @@ import type {
 } from '@aws-sdk/client-sns'
 
 import {
+  CreateSqsQueueParams,
   SqnsOptions,
   TopicOptions
 } from './types'
-
-interface CreateSqsQueueParams {
-  deadletterQueueArn?: string
-  queueName?: string
-}
 
 const sqns = async (options: SqnsOptions = {}): Promise<string> => {
   const {
@@ -74,13 +70,15 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
   const createDeadletterQueue = async (queueName: string): Promise<string | undefined> =>
     await createQueue({ QueueName: `${queueName}-DLQ` })
       .then(queue => queue.QueueUrl)
+      .catch(() => undefined)
 
-  const getQueueArn = async (QueueUrl: string): Promise<string | undefined> => {
-    return await getQueueAttributes({
+  const getQueueArn = async (QueueUrl: string): Promise<string | undefined> =>
+    await getQueueAttributes({
       QueueUrl,
       AttributeNames: ['QueueArn']
-    }).then((attributes: GetQueueAttributesCommandOutput) => attributes.Attributes?.QueueArn)
-  }
+    })
+      .then((attributes: GetQueueAttributesCommandOutput) => attributes.Attributes?.QueueArn)
+      .catch(() => undefined)
 
   const createSqsQueue = async ({ deadletterQueueArn, queueName }: CreateSqsQueueParams): Promise<string | undefined> =>
     await createQueue({
@@ -91,7 +89,10 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
         })
       },
       QueueName: queueName
-    }).then(queue => queue.QueueUrl)
+    })
+      .then(queue => queue.QueueUrl)
+      .catch(() => undefined)
+
 
   const setSqsQueueAttributes = async (queueUrl: string, queueArn: string, snsTopic: string): Promise<SetQueueAttributesCommandOutput> =>
     await setQueueAttributes({

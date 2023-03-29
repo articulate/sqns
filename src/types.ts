@@ -9,3 +9,8 @@ export interface SqnsOptions {
   region?: string
   topic?: TopicOptions
 }
+
+export interface CreateSqsQueueParams {
+  deadletterQueueArn?: string
+  queueName?: string
+}
