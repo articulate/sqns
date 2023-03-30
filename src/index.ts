@@ -169,4 +169,4 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
   return queueUrl
 }
 
-export default sqns
+export = sqns
