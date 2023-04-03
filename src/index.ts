@@ -33,7 +33,7 @@ import {
   TopicOptions
 } from './types'
 
-const sqns = async (options: SqnsOptions = {}): Promise<string> => {
+const sqns = async (options: SqnsOptions): Promise<string> => {
   const {
     region,
     queueName,
