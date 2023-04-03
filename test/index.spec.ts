@@ -17,13 +17,13 @@ describe('sqns', () => {
 
   context('when region option is not provided', () => {
     it('rejects with an error', () =>
-      expect(sqns()).to.be.rejectedWith(Error, 'Missing region')
+      expect(sqns({ region: '', queueName: '' })).to.be.rejectedWith(Error, 'Missing region')
     )
   })
 
   context('when queueName option is not provided', () => {
     it('rejects with an error', () =>
-      expect(sqns({ region: 'us-east-1' })).to.be.rejectedWith(Error, 'Missing queueName')
+      expect(sqns({ region: 'us-east-1', queueName: '' })).to.be.rejectedWith(Error, 'Missing queueName')
     )
   })
 
