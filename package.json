@@ -29,8 +29,7 @@
   "homepage": "https://github.com/articulate/sqns#readme",
   "dependencies": {
     "@aws-sdk/client-sns": "^3.296.0",
-    "@aws-sdk/client-sqs": "^3.296.0",
-    "aws-sdk-client-mock": "^2.1.1"
+    "@aws-sdk/client-sqs": "^3.296.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
@@ -40,16 +39,11 @@
     "@types/sinon-chai": "^3.2.9",
     "@typescript-eslint/eslint-plugin": "^5.43.0",
     "@typescript-eslint/parser": "^5.56.0",
-    "aws-sdk-mock": "^4.5.0",
+    "aws-sdk-client-mock": "^2.1.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "eslint": "^8.0.1",
-    "eslint-config-standard-with-typescript": "^34.0.1",
-    "eslint-plugin-import": "^2.25.2",
-    "eslint-plugin-n": "^15.0.0",
-    "eslint-plugin-promise": "^6.0.0",
     "mocha": "^6.2.0",
-    "nock": "^11.3.5",
     "sinon": "^7.5.0",
     "sinon-chai": "^3.3.0",
     "ts-node": "^10.9.1",

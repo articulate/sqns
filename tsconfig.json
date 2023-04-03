@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "module": "CommonJS",
+    "moduleResolution": "nodenext",
     "outDir": "./build",
     "sourceMap": true,
-    "target": "ES2018",
-    "moduleResolution": "nodenext",
-    "module": "CommonJS",
+    "strict": true,
     "strictNullChecks": true,
-    "esModuleInterop": true,
+    "target": "ES2018"
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["./test/**/*.ts"]

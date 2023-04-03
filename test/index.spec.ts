@@ -1,4 +1,4 @@
-import sinon from 'sinon'
+import sinon, { SinonStub } from 'sinon'
 import { expect } from 'chai'
 import { mockClient } from 'aws-sdk-client-mock'
 import { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, SetQueueAttributesCommand } from '@aws-sdk/client-sqs'
@@ -28,9 +28,9 @@ describe('sqns', () => {
   })
 
   context('when region, queueName options are provided', () => {
-    let createQueueStub
-    let getQueueAttributesStub
-    let setQueueAttributesStub
+    let createQueueStub: SinonStub
+    let getQueueAttributesStub: SinonStub
+    let setQueueAttributesStub: SinonStub
 
     beforeEach(() => {
       createQueueStub = sinon.stub()
@@ -147,6 +147,19 @@ describe('sqns', () => {
         await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
       })
 
+      it('fails with an error when getting the DLQ ARN if the result is undefined', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves({ thisIsNotTheExpectedAttribute: true })
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
+      })
+
       it('fails with an error if a failure happens when creating the main queue', async () => {
         createQueueStub
           .onCall(0)
@@ -212,8 +225,8 @@ describe('sqns', () => {
 
 
     context('when topic arn is provided', () => {
-      let subscribeStub
-      let setSubscriptionAttributesStub
+      let subscribeStub: SinonStub
+      let setSubscriptionAttributesStub: SinonStub
 
       beforeEach(() => {
         setQueueAttributesStub = sinon.stub()

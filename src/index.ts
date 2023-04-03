@@ -52,20 +52,20 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
   const sqsClient = new SQSClient({ region })
   const snsClient = new SNSClient({ region })
 
-  const createQueue = async (params: CreateQueueCommandInput): Promise<CreateQueueCommandOutput> =>
-    await sqsClient.send(new CreateQueueCommand(params))
+  const createQueue = (params: CreateQueueCommandInput): Promise<CreateQueueCommandOutput> =>
+    sqsClient.send(new CreateQueueCommand(params))
 
-  const getQueueAttributes = async (params: GetQueueAttributesCommandInput): Promise<GetQueueAttributesCommandOutput> =>
-    await sqsClient.send(new GetQueueAttributesCommand(params))
+  const getQueueAttributes = (params: GetQueueAttributesCommandInput): Promise<GetQueueAttributesCommandOutput> =>
+    sqsClient.send(new GetQueueAttributesCommand(params))
 
-  const setQueueAttributes = async (params: SetQueueAttributesCommandInput): Promise<SetQueueAttributesCommandOutput> =>
-    await sqsClient.send(new SetQueueAttributesCommand(params))
+  const setQueueAttributes = (params: SetQueueAttributesCommandInput): Promise<SetQueueAttributesCommandOutput> =>
+    sqsClient.send(new SetQueueAttributesCommand(params))
 
-  const subscribe = async (params: SubscribeCommandInput): Promise<SubscribeCommandOutput> =>
-    await snsClient.send(new SubscribeCommand(params))
+  const subscribe = (params: SubscribeCommandInput): Promise<SubscribeCommandOutput> =>
+    snsClient.send(new SubscribeCommand(params))
 
-  const setSubscriptionAttributes = async (params: SetSubscriptionAttributesCommandInput): Promise<SetSubscriptionAttributesCommandOutput> =>
-    await snsClient.send(new SetSubscriptionAttributesCommand(params))
+  const setSubscriptionAttributes = (params: SetSubscriptionAttributesCommandInput): Promise<SetSubscriptionAttributesCommandOutput> =>
+    snsClient.send(new SetSubscriptionAttributesCommand(params))
 
   const createDeadletterQueue = async (queueName: string): Promise<string | undefined> =>
     await createQueue({ QueueName: `${queueName}-DLQ` })
@@ -117,7 +117,7 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
       QueueUrl: queueUrl
     })
 
-  const createTopicSubscription = async (queueArn, topicArn): Promise<string | undefined> =>
+  const createTopicSubscription = async (queueArn: string, topicArn: string): Promise<string | undefined> =>
     await subscribe({
       Endpoint: queueArn,
       Protocol: 'sqs',
@@ -149,7 +149,7 @@ const sqns = async (options: SqnsOptions = {}): Promise<string> => {
     const subscriptionArn = await createTopicSubscription(queueArn, topicOptions.arn)
     await setSqsQueueAttributes(queueUrl, queueArn, topicOptions.arn)
 
-    if (topicOptions.filterPolicy !== null) {
+    if (topicOptions.filterPolicy) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,
         AttributeName: 'FilterPolicy',
