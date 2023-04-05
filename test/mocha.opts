@@ -1,3 +1,5 @@
+--require ts-node/register
+--require ./test/support/chai.ts
 --recursive
---require test/support/chai
 --reporter spec
+--project ../tsconfig.json

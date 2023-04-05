@@ -1,51 +1,59 @@
-const AWS = require('aws-sdk-mock')
-const sinon = require('sinon')
-const path = require('path')
-AWS.setSDK(path.resolve('./node_modules/aws-sdk-mock'))
-AWS.setSDKInstance(require('aws-sdk'))
+import sinon, { SinonStub } from 'sinon'
+import { expect } from 'chai'
+import { mockClient } from 'aws-sdk-client-mock'
+import { SQSClient, CreateQueueCommand, GetQueueAttributesCommand, SetQueueAttributesCommand } from '@aws-sdk/client-sqs'
+import { SNSClient, SubscribeCommand, SetSubscriptionAttributesCommand } from '@aws-sdk/client-sns'
 
-const sqns = require('../')
+import sqns from '../src'
+
+const sqsMock = mockClient(SQSClient)
+const snsMock = mockClient(SNSClient)
 
 describe('sqns', () => {
+  beforeEach(() => {
+    sqsMock.reset()
+    snsMock.reset()
+  })
+
   context('when region option is not provided', () => {
     it('rejects with an error', () =>
-      expect(sqns()).to.be.rejectedWith(Error, 'Missing region')
+      expect(sqns({ region: '', queueName: '' })).to.be.rejectedWith(Error, 'Missing region')
     )
   })
 
   context('when queueName option is not provided', () => {
     it('rejects with an error', () =>
-      expect(sqns({ region: 'us-east-1' })).to.be.rejectedWith(Error, 'Missing queueName')
+      expect(sqns({ region: 'us-east-1', queueName: '' })).to.be.rejectedWith(Error, 'Missing queueName')
     )
   })
 
   context('when region, queueName options are provided', () => {
-    let createQueueStub
-    let getQueueAttributesStub
+    let createQueueStub: SinonStub
+    let getQueueAttributesStub: SinonStub
+    let setQueueAttributesStub: SinonStub
 
     beforeEach(() => {
       createQueueStub = sinon.stub()
       createQueueStub
         .onCall(0)
-        .callsArgWith(1, null, { QueueUrl: 'mock-deadletter-queue-url' })
+        .resolves({ QueueUrl: 'mock-deadletter-queue-url' })
         .onCall(1)
-        .callsArgWith(1, null, { QueueUrl: 'mock-queue-url' })
+        .resolves({ QueueUrl: 'mock-queue-url' })
+
       getQueueAttributesStub = sinon.stub()
       getQueueAttributesStub
         .onCall(0)
-        .callsArgWith(1, null, { Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
+        .resolves({ Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
         .onCall(1)
-        .callsArgWith(1, null, { Attributes: { QueueArn: 'mock-queue-arn' } })
+        .resolves({ Attributes: { QueueArn: 'mock-queue-arn' } })
+
       setQueueAttributesStub = sinon.stub()
       setQueueAttributesStub
         .callsArgWith(1, null, {  })
-      AWS.mock('SQS', 'createQueue', createQueueStub)
-      AWS.mock('SQS', 'getQueueAttributes', getQueueAttributesStub)
-    })
 
-    afterEach(() => {
-      AWS.restore('SQS', 'createQueue')
-      AWS.restore('SQS', 'getQueueAttributes')
+      sqsMock.on(CreateQueueCommand).callsFake(createQueueStub)
+      sqsMock.on(GetQueueAttributesCommand).callsFake(getQueueAttributesStub)
+      sqsMock.on(SetQueueAttributesCommand).callsFake(setQueueAttributesStub)
     })
 
     it('creates a deadletter queue', async () => {
@@ -53,15 +61,16 @@ describe('sqns', () => {
         region: 'us-east-1',
         queueName: 'queue',
       })
+
       expect(createQueueStub).to.have.been.calledWith({ QueueName: 'queue-DLQ' })
       expect(createQueueStub).to.have.been.calledWith({
-        QueueName: 'queue',
         Attributes: {
           RedrivePolicy: JSON.stringify({
             deadLetterTargetArn: 'mock-deadletter-queue-arn',
             maxReceiveCount: 3,
           })
-        }
+        },
+        QueueName: 'queue'
       })
       expect(queueUrl).to.equal('mock-queue-url')
     })
@@ -85,31 +94,160 @@ describe('sqns', () => {
       expect(queueUrl).to.equal('mock-queue-url')
     })
 
+    context('failures', () => {
+      it('fails with an error if a failure happens when creating the DLQ', async () => {
+        createQueueStub
+          .onCall(0)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create DQL queue for: queue')
+      })
+
+      it('fails with an error when creating a DLQ if the result is undefined', async () => {
+        createQueueStub
+          .onCall(0)
+          .resolves()
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create DQL queue for: queue')
+      })
+
+      it('fails with an error if a failure happens when getting the DLQ ARN', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
+      })
+
+      it('fails with an error when getting the DLQ ARN if the result is undefined', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves()
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
+      })
+
+      it('fails with an error when getting the DLQ ARN if the result is undefined', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves({ thisIsNotTheExpectedAttribute: true })
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-deadletter-queue-url')
+      })
+
+      it('fails with an error if a failure happens when creating the main queue', async () => {
+        createQueueStub
+          .onCall(0)
+          .resolves({ QueueUrl: 'mock-deadletter-queue-url' })
+          .onCall(1)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create queue: queue')
+      })
+
+      it('fails with an error when creating the main queue if the result is undefined', async () => {
+        createQueueStub
+          .onCall(0)
+          .resolves({ QueueUrl: 'mock-deadletter-queue-url' })
+          .onCall(1)
+          .resolves({})
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to create queue: queue')
+      })
+
+      it('fails with an error if a failure happens when getting the main queue ARN', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves({ Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
+          .onCall(1)
+          .rejects(new Error('BOOM'))
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-queue-url')
+      })
+
+      it('fails with an error when creating the main queue if the result is undefined', async () => {
+        getQueueAttributesStub
+          .onCall(0)
+          .resolves({ Attributes: { QueueArn: 'mock-deadletter-queue-arn' } })
+          .onCall(1)
+          .resolves()
+
+        const result = sqns({
+          region: 'us-east-1',
+          queueName: 'queue',
+          maxReceiveCount: 1,
+        })
+        await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-queue-url')
+      })
+
+    })
+
+
+
     context('when topic arn is provided', () => {
-      let setQueueAttributes
-      let subscribeStub
-      let setSubscriptionAttributesStub
+      let subscribeStub: SinonStub
+      let setSubscriptionAttributesStub: SinonStub
 
       beforeEach(() => {
         setQueueAttributesStub = sinon.stub()
         setQueueAttributesStub
-          .callsArgWith(1, null, { QueueUrl: 'mock-queue-url' })
+          .resolves({ QueueUrl: 'mock-queue-url' })
         subscribeStub = sinon.stub()
         subscribeStub
-          .callsArgWith(1, null, { SubscriptionArn: 'mock-subscription-arn' })
+          .resolves({ SubscriptionArn: 'mock-subscription-arn' })
         setSubscriptionAttributesStub = sinon.stub()
         setSubscriptionAttributesStub
           .onCall(0)
-          .callsArgWith(1, null, { })
-        AWS.mock('SQS', 'setQueueAttributes', setQueueAttributesStub)
-        AWS.mock('SNS', 'subscribe', subscribeStub)
-        AWS.mock('SNS', 'setSubscriptionAttributes', setSubscriptionAttributesStub)
+          .resolves({})
+
+        sqsMock.on(SetQueueAttributesCommand).callsFake(setQueueAttributesStub)
+        snsMock.on(SubscribeCommand).callsFake(subscribeStub)
+        snsMock.on(SetSubscriptionAttributesCommand).callsFake(setSubscriptionAttributesStub)
       })
 
       afterEach(() => {
-        AWS.restore('SQS', 'setQueueAttributes')
-        AWS.restore('SNS', 'subscribe')
-        AWS.restore('SNS', 'setSubscriptionAttributes')
+        sqsMock.reset()
+        snsMock.reset()
       })
 
       it('creates a topic subscription', async () => {
@@ -168,7 +306,7 @@ describe('sqns', () => {
         beforeEach(() => {
           setSubscriptionAttributesStub
             .onCall(1)
-            .callsArgWith(1, null, { })
+            .resolves({ })
         })
 
         it('creates a topic subscription', async () => {

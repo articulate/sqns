@@ -1,0 +1,9 @@
+*.tgz
+.eslintrc.json
+.git*
+.npmignore
+eslint.tsconfig.json
+node_modules
+test
+tsconfig.json
+yarn.lock
