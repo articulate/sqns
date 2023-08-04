@@ -35,14 +35,17 @@ import {
 
 const sqns = async (options: SqnsOptions): Promise<string> => {
   const {
-    region,
-    queueName,
+    fifo = false,
     maxReceiveCount = 3,
-    topic = {}
+    queueName,
+    region,
+    topic = {},
   } = options
 
   if (region === null || region === undefined || region === '') throw Error('Missing region')
   if (queueName === null || queueName === undefined || queueName === '') throw Error('Missing queueName')
+
+  const queueOpts: CreateSqsQueueParams = { queueName, fifo }
 
   const topicOptions: TopicOptions = {
     rawMessageDelivery: true,
@@ -80,19 +83,15 @@ const sqns = async (options: SqnsOptions): Promise<string> => {
       .then((attributes: GetQueueAttributesCommandOutput) => attributes.Attributes?.QueueArn)
       .catch(() => undefined)
 
-  const createSqsQueue = async ({ deadletterQueueArn, queueName }: CreateSqsQueueParams): Promise<string | undefined> =>
+  const createSqsQueue = async ({ deadletterQueueArn, queueName, fifo = false }: CreateSqsQueueParams): Promise<string | undefined> =>
     await createQueue({
-      Attributes: {
-        RedrivePolicy: JSON.stringify({
-          deadLetterTargetArn: deadletterQueueArn,
-          maxReceiveCount
-        })
-      },
-      QueueName: queueName
+      Attributes: fifo
+        ? { FifoQueue: 'true' }
+        : { RedrivePolicy: JSON.stringify({ deadLetterTargetArn: deadletterQueueArn, maxReceiveCount }) },
+      QueueName: fifo ? `${queueName}.fifo` : queueName
     })
       .then(queue => queue.QueueUrl)
       .catch(() => undefined)
-
 
   const setSqsQueueAttributes = async (queueUrl: string, queueArn: string, snsTopic: string): Promise<SetQueueAttributesCommandOutput> =>
     await setQueueAttributes({
@@ -124,18 +123,22 @@ const sqns = async (options: SqnsOptions): Promise<string> => {
       TopicArn: topicArn
     }).then(sub => sub.SubscriptionArn)
 
-  const deadletterQueueUrl = await createDeadletterQueue(queueName)
+  if (!fifo) {
+    const deadletterQueueUrl = await createDeadletterQueue(queueName)
 
-  if (deadletterQueueUrl === undefined) {
-    throw Error(`SQS: Failed to create DQL queue for: ${queueName}`)
+    if (deadletterQueueUrl === undefined) {
+      throw Error(`SQS: Failed to create DLQ queue for: ${queueName}`)
+    }
+
+    const deadletterQueueArn = await getQueueArn(deadletterQueueUrl)
+    if (deadletterQueueArn === undefined) {
+      throw Error(`SQS: Failed to get arn for: ${deadletterQueueUrl}`)
+    }
+
+    queueOpts.deadletterQueueArn = deadletterQueueArn
   }
 
-  const deadletterQueueArn = await getQueueArn(deadletterQueueUrl)
-  if (deadletterQueueArn === undefined) {
-    throw Error(`SQS: Failed to get arn for: ${deadletterQueueUrl}`)
-  }
-
-  const queueUrl = await createSqsQueue({ deadletterQueueArn, queueName })
+  const queueUrl = await createSqsQueue(queueOpts)
   if (queueUrl === undefined) {
     throw Error(`SQS: Failed to create queue: ${queueName}`)
   }

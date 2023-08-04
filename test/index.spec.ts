@@ -105,7 +105,7 @@ describe('sqns', () => {
           queueName: 'queue',
           maxReceiveCount: 1,
         })
-        await expect(result).to.be.rejectedWith('SQS: Failed to create DQL queue for: queue')
+        await expect(result).to.be.rejectedWith('SQS: Failed to create DLQ queue for: queue')
       })
 
       it('fails with an error when creating a DLQ if the result is undefined', async () => {
@@ -118,7 +118,7 @@ describe('sqns', () => {
           queueName: 'queue',
           maxReceiveCount: 1,
         })
-        await expect(result).to.be.rejectedWith('SQS: Failed to create DQL queue for: queue')
+        await expect(result).to.be.rejectedWith('SQS: Failed to create DLQ queue for: queue')
       })
 
       it('fails with an error if a failure happens when getting the DLQ ARN', async () => {
@@ -219,10 +219,7 @@ describe('sqns', () => {
         })
         await expect(result).to.be.rejectedWith('SQS: Failed to get arn for: mock-queue-url')
       })
-
     })
-
-
 
     context('when topic arn is provided', () => {
       let subscribeStub: SinonStub
@@ -414,6 +411,98 @@ describe('sqns', () => {
             },
             QueueUrl: 'mock-queue-url',
           })
+          expect(queueUrl).to.equal('mock-queue-url')
+        })
+      })
+
+      context.only('when provided a fifo queue', () => {
+        beforeEach(() => {
+          createQueueStub = sinon.stub()
+          createQueueStub
+            .onCall(0)
+            .resolves({ QueueUrl: 'mock-queue-url' })
+            .rejects(new Error('Called create queue twice'))
+
+          getQueueAttributesStub = sinon.stub()
+          getQueueAttributesStub
+            .onCall(0)
+            .resolves({ Attributes: { QueueArn: 'mock-queue-arn' } })
+            .rejects(new Error('Called get queue attributes twice'))
+
+          setQueueAttributesStub = sinon.stub()
+          setQueueAttributesStub
+            .resolves({ QueueUrl: 'mock-queue-url' })
+
+          subscribeStub = sinon.stub()
+          subscribeStub
+            .resolves({ SubscriptionArn: 'mock-subscription-arn' })
+
+          setSubscriptionAttributesStub = sinon.stub()
+          setSubscriptionAttributesStub
+            .onCall(0)
+            .resolves({})
+
+          sqsMock.on(CreateQueueCommand).callsFake(createQueueStub)
+          sqsMock.on(GetQueueAttributesCommand).callsFake(getQueueAttributesStub)
+          sqsMock.on(SetQueueAttributesCommand).callsFake(setQueueAttributesStub)
+          snsMock.on(SubscribeCommand).callsFake(subscribeStub)
+          snsMock.on(SetSubscriptionAttributesCommand).callsFake(setSubscriptionAttributesStub)
+        })
+
+        afterEach(() => {
+          sqsMock.reset()
+          snsMock.reset()
+        })
+
+        it('does not create a dead letter queue', async () => {
+          const queueUrl = await sqns({
+            region: 'us-east-1',
+            queueName: 'queue',
+            topic: {
+              arn: 'mock-sns-topic-arn',
+            },
+            fifo: true
+          })
+
+          expect(createQueueStub).to.have.been.calledOnce.and.to.have.been.calledWith({
+            Attributes: { FifoQueue: 'true' },
+            QueueName: 'queue.fifo',
+          })
+
+          expect(subscribeStub).to.have.been.calledOnce.and.to.have.been.calledWith({
+            Endpoint: 'mock-queue-arn',
+            Protocol: 'sqs',
+            TopicArn: 'mock-sns-topic-arn',
+          })
+
+          expect(setQueueAttributesStub).to.have.been.calledWith({
+            Attributes: {
+              Policy: JSON.stringify({
+                Version: '2012-10-17',
+                Statement: [
+                  {
+                    Effect: 'Allow',
+                    Principal: '*',
+                    Action: 'SQS:SendMessage',
+                    Resource: 'mock-queue-arn',
+                    Condition: {
+                      ArnEquals: {
+                        'aws:SourceArn': 'mock-sns-topic-arn',
+                      },
+                    },
+                  },
+                ],
+              }),
+            },
+            QueueUrl: 'mock-queue-url',
+          })
+
+          expect(setSubscriptionAttributesStub).to.have.been.calledOnce.and.to.have.been.calledWith({
+            AttributeName: 'RawMessageDelivery',
+            AttributeValue: 'true',
+            SubscriptionArn: 'mock-subscription-arn',
+          })
+
           expect(queueUrl).to.equal('mock-queue-url')
         })
       })

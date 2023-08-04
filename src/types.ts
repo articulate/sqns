@@ -1,6 +1,7 @@
 export interface CreateSqsQueueParams {
   deadletterQueueArn?: string
   queueName?: string
+  fifo?: boolean
 }
 
 export interface SqnsOptions {
@@ -8,6 +9,7 @@ export interface SqnsOptions {
   queueName: string
   region: string
   topic?: TopicOptions
+  fifo?: boolean
 }
 
 export interface TopicOptions {
