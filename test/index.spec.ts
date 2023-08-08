@@ -415,7 +415,7 @@ describe('sqns', () => {
         })
       })
 
-      context.only('when provided a fifo queue', () => {
+      context('when provided a fifo queue', () => {
         beforeEach(() => {
           createQueueStub = sinon.stub()
           createQueueStub
