@@ -157,6 +157,14 @@ const sqns = async (options: SqnsOptions): Promise<string> => {
       })
     }
 
+    if (topicOptions.filterPolicy && topicOptions.filterPolicyScope) {
+      await setSubscriptionAttributes({
+        SubscriptionArn: subscriptionArn,
+        AttributeName: 'FilterPolicyScope',
+        AttributeValue: topicOptions.filterPolicyScope
+      })
+    }
+
     if (topicOptions.rawMessageDelivery === true) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,

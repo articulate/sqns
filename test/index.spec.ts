@@ -366,6 +366,26 @@ describe('sqns', () => {
           })
           expect(queueUrl).to.equal('mock-queue-url')
         })
+
+        context('when topic filterPolicyScope is also provided', () => {
+          it('sets FilterPolicyScope attribute', async () => {
+            await sqns({
+              region: 'us-east-1',
+              queueName: 'queue',
+              topic: {
+                arn: 'mock-sns-topic-arn',
+                filterPolicy: { mock: 'filter-policy' },
+                filterPolicyScope: 'MessageAttributes',
+              }
+            })
+
+            expect(setSubscriptionAttributesStub).to.have.been.calledWith({
+              SubscriptionArn: 'mock-subscription-arn',
+              AttributeName: 'FilterPolicyScope',
+              AttributeValue: 'MessageAttributes',
+            })
+          })
+        })
       })
 
       context('when topic rawMessageDelivery is false', () => {
