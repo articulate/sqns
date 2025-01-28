@@ -13,5 +13,6 @@ export interface SqnsOptions {
 export interface TopicOptions {
   arn?: string
   filterPolicy?: Record<string, string>
+  filterPolicyScope?: 'MessageAttributes' | 'MessageBody'
   rawMessageDelivery?: boolean
 }
