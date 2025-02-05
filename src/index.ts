@@ -149,19 +149,19 @@ const sqns = async (options: SqnsOptions): Promise<string> => {
     const subscriptionArn = await createTopicSubscription(queueArn, topicOptions.arn)
     await setSqsQueueAttributes(queueUrl, queueArn, topicOptions.arn)
 
-    if (topicOptions.filterPolicy) {
-      await setSubscriptionAttributes({
-        SubscriptionArn: subscriptionArn,
-        AttributeName: 'FilterPolicy',
-        AttributeValue: JSON.stringify(topicOptions.filterPolicy)
-      })
-    }
-
     if (topicOptions.filterPolicy && topicOptions.filterPolicyScope) {
       await setSubscriptionAttributes({
         SubscriptionArn: subscriptionArn,
         AttributeName: 'FilterPolicyScope',
         AttributeValue: topicOptions.filterPolicyScope
+      })
+    }
+
+    if (topicOptions.filterPolicy) {
+      await setSubscriptionAttributes({
+        SubscriptionArn: subscriptionArn,
+        AttributeName: 'FilterPolicy',
+        AttributeValue: JSON.stringify(topicOptions.filterPolicy)
       })
     }
 
